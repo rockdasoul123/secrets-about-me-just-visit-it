@@ -65,7 +65,6 @@
   }
   .prank-btn:hover { box-shadow: 0 0 40px rgba(248,81,73,.7); transform: scale(1.05); }
 
-  /* FAKE OS */
   #os-overlay {
     display: none; position: fixed; inset: 0; background: #000;
     z-index: 9999; font-family: monospace; flex-direction: column;
@@ -82,6 +81,7 @@
   .t-red { color: #f85149; }
   .t-yellow { color: #e3b341; }
   .t-cyan { color: #00ffff; }
+  .t-white { color: #fff; }
   #bsod {
     display: none; position: absolute; inset: 0; background: #0000aa;
     color: #aaa; padding: 40px; z-index: 2; flex-direction: column; gap: 16px; font-size: 14px;
@@ -94,16 +94,6 @@
   #bsod .bar-fill { height: 100%; background: #fff; width: 0%; }
   #glitch-canvas { display: none; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
   #glitch-canvas.active { display: block; }
-  #close-btn {
-    display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-    z-index: 99999; background: #1a1a1a; border: 2px solid #3fb950; color: #3fb950;
-    font-family: monospace; font-size: 14px; padding: 12px 32px; border-radius: 8px;
-    cursor: pointer; animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse {
-    0%,100%{box-shadow:0 0 20px rgba(63,185,80,.3)} 50%{box-shadow:0 0 40px rgba(63,185,80,.8)}
-  }
-  #close-btn.visible { display: block; }
 </style>
 </head>
 <body>
@@ -128,131 +118,271 @@
   <canvas id="glitch-canvas"></canvas>
 </div>
 
-<button id="close-btn" onclick="closePrank()">✅ lol jk — close prank</button>
-
 <script>
-(function(){
-  const c=document.getElementById('bgLinks');
-  for(let i=0;i<60;i++){
-    const a=document.createElement('a');
-    a.href='https://www.youtube.com/watch?v=SCaAetNzXIc';
-    a.target='_blank'; a.rel='noopener noreferrer';
-    a.style.left=Math.random()*100+'%';
-    a.style.top=Math.random()*100+'%';
-    a.textContent='.';
-    c.appendChild(a);
-  }
-})();
+// Hidden bg links
+const bgc = document.getElementById('bgLinks');
+const hiddenLinks = [];
+for(let i=0;i<60;i++){
+  const a=document.createElement('a');
+  a.href='https://www.youtube.com/watch?v=SCaAetNzXIc';
+  a.target='_blank'; a.rel='noopener noreferrer';
+  a.style.left=Math.random()*100+'%';
+  a.style.top=Math.random()*100+'%';
+  a.textContent='.';
+  bgc.appendChild(a);
+  hiddenLinks.push(a);
+}
 
-let audioCtx=null,glitchInterval=null;
-function initAudio(){ if(audioCtx)return; audioCtx=new(window.AudioContext||window.webkitAudioContext)(); }
-function playGlitch(){
-  if(!audioCtx)return;
-  const t=Math.floor(Math.random()*4);
-  if(t===0){
-    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(80+Math.random()*400,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(20,audioCtx.currentTime+0.3);
-    g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.3);
-  } else if(t===1){
-    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='square'; o.frequency.value=440+Math.random()*880;
-    g.gain.setValueAtTime(0.3,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.15);
-  } else if(t===2){
-    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.2,audioCtx.sampleRate);
-    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.5;
-    const s=audioCtx.createBufferSource(),g=audioCtx.createGain();
-    s.buffer=buf; g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
-    s.connect(g); g.connect(audioCtx.destination); s.start();
+// Check popup permission and autoclicker fallback
+let canOpenTabs = false;
+let autoClickInterval = null;
+
+function checkPopupPermission() {
+  const test = window.open('', '_blank');
+  if (test && !test.closed) {
+    test.close();
+    canOpenTabs = true;
   } else {
-    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(1200,audioCtx.currentTime);
-    o.frequency.exponentialRampToValueAtTime(30,audioCtx.currentTime+0.6);
-    g.gain.setValueAtTime(0.5,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.6);
-    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.6);
+    canOpenTabs = false;
   }
 }
-function startGlitchAudio(){ initAudio(); playGlitch(); glitchInterval=setInterval(()=>{ if(Math.random()>.3)playGlitch(); },350); }
-function stopGlitchAudio(){ if(glitchInterval){clearInterval(glitchInterval);glitchInterval=null;} }
 
-const canvas=document.getElementById('glitch-canvas');
-const ctx2=canvas.getContext('2d');
-let animId=null;
-function drawGlitch(){
-  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
-  ctx2.clearRect(0,0,canvas.width,canvas.height);
-  for(let i=0;i<Math.floor(Math.random()*12)+2;i++){
-    ctx2.fillStyle=`rgba(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.random()*.5+.1})`;
-    ctx2.fillRect(Math.random()*100-50,Math.random()*canvas.height,Math.random()*canvas.width*.8+canvas.width*.1,Math.random()*6+1);
-  }
-  animId=requestAnimationFrame(drawGlitch);
+function startAutoClicker() {
+  let idx = 0;
+  autoClickInterval = setInterval(() => {
+    if (idx < hiddenLinks.length) {
+      hiddenLinks[idx].click();
+      idx++;
+    } else {
+      idx = 0;
+    }
+  }, 600);
 }
 
-const lines=[
-  {t:'SYSTEM BOOT SEQUENCE INITIATED...',c:'',d:0},
+function stopAutoClicker() {
+  if (autoClickInterval) { clearInterval(autoClickInterval); autoClickInterval = null; }
+}
+
+// CHAOTIC AUDIO ENGINE
+let audioCtx = null;
+let glitchInterval = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+
+function playLongNoise(duration) {
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * duration, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1);
+  const s = audioCtx.createBufferSource();
+  const g = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 200 + Math.random() * 2000;
+  filter.Q.value = 0.5;
+  s.buffer = buf;
+  g.gain.setValueAtTime(0.6, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  s.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+  s.start();
+}
+
+function playScream() {
+  // Descending distorted scream like salvin exe
+  const o = audioCtx.createOscillator();
+  const o2 = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  const dist = audioCtx.createWaveShaper();
+  const curve = new Float32Array(256);
+  for (let i = 0; i < 256; i++) {
+    const x = (i * 2) / 256 - 1;
+    curve[i] = (Math.PI + 400) * x / (Math.PI + 400 * Math.abs(x));
+  }
+  dist.curve = curve;
+  o.type = 'sawtooth';
+  o2.type = 'square';
+  o.frequency.setValueAtTime(600 + Math.random() * 400, audioCtx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(40 + Math.random() * 80, audioCtx.currentTime + 1.5);
+  o2.frequency.setValueAtTime(300 + Math.random() * 200, audioCtx.currentTime);
+  o2.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 1.5);
+  g.gain.setValueAtTime(0.7, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+  o.connect(dist); o2.connect(dist); dist.connect(g); g.connect(audioCtx.destination);
+  o.start(); o2.start();
+  o.stop(audioCtx.currentTime + 1.5);
+  o2.stop(audioCtx.currentTime + 1.5);
+}
+
+function playBrokenBeat() {
+  for (let i = 0; i < 8; i++) {
+    setTimeout(() => {
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = i % 2 === 0 ? 'square' : 'sawtooth';
+      o.frequency.value = [55, 110, 220, 440, 880][Math.floor(Math.random() * 5)];
+      g.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.08);
+    }, i * 60);
+  }
+}
+
+function playGlitchStutter() {
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => {
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+      const freq = 50 + Math.random() * 500;
+      for (let j = 0; j < d.length; j++) d[j] = Math.sin(2 * Math.PI * freq * j / audioCtx.sampleRate) * (Math.random() > 0.5 ? 1 : -1);
+      const s = audioCtx.createBufferSource();
+      const g = audioCtx.createGain();
+      s.buffer = buf;
+      g.gain.value = Math.random() * 0.6;
+      s.connect(g); g.connect(audioCtx.destination);
+      s.start();
+    }, i * 45);
+  }
+}
+
+function playDeepRumble() {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(30, audioCtx.currentTime);
+  o.frequency.linearRampToValueAtTime(15, audioCtx.currentTime + 2);
+  g.gain.setValueAtTime(0.9, audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2);
+  o.connect(g); g.connect(audioCtx.destination);
+  o.start(); o.stop(audioCtx.currentTime + 2);
+}
+
+function playRandomChaos() {
+  if (!audioCtx) return;
+  const pick = Math.floor(Math.random() * 6);
+  if (pick === 0) playScream();
+  else if (pick === 1) playBrokenBeat();
+  else if (pick === 2) playGlitchStutter();
+  else if (pick === 3) playDeepRumble();
+  else if (pick === 4) playLongNoise(0.3 + Math.random() * 0.5);
+  else { playScream(); setTimeout(playBrokenBeat, 200); }
+}
+
+function startChaoticAudio() {
+  initAudio();
+  playScream();
+  playDeepRumble();
+  glitchInterval = setInterval(() => {
+    playRandomChaos();
+  }, 180);
+}
+
+function stopChaoticAudio() {
+  if (glitchInterval) { clearInterval(glitchInterval); glitchInterval = null; }
+}
+
+// Canvas glitch
+const canvas = document.getElementById('glitch-canvas');
+const ctx2 = canvas.getContext('2d');
+let animId = null;
+function drawGlitch() {
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  ctx2.clearRect(0, 0, canvas.width, canvas.height);
+  const count = Math.floor(Math.random() * 20) + 5;
+  for (let i = 0; i < count; i++) {
+    ctx2.fillStyle = `rgba(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.random()*.7+.1})`;
+    ctx2.fillRect(Math.random()*canvas.width-50, Math.random()*canvas.height, Math.random()*canvas.width, Math.random()*20+1);
+  }
+  // Extra: random full screen flash
+  if (Math.random() > 0.92) {
+    ctx2.fillStyle = `rgba(255,0,0,0.15)`;
+    ctx2.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  animId = requestAnimationFrame(drawGlitch);
+}
+
+const lines = [
+  {t:'SYSTEM BOOT SEQUENCE INITIATED...',c:'t-white',d:0},
   {t:'Loading kernel modules...',c:'t-cyan',d:300},
   {t:'[  OK  ] Reached target Local File Systems.',c:'t-cyan',d:600},
-  {t:'Scanning for viruses...',c:'',d:900},
-  {t:'>>> DETECTED: 1,337 CRITICAL THREATS',c:'t-red',d:1300},
-  {t:'>>> ERROR: FIREWALL COMPROMISED',c:'t-red',d:1600},
-  {t:'Attempting recovery...........',c:'t-yellow',d:1900},
-  {t:'[FAIL] Recovery process terminated.',c:'t-red',d:2500},
-  {t:'Uploading your files to the cloud ☁️',c:'t-yellow',d:2800},
-  {t:'sending_data_to_hacker_server.exe... ████████░░ 80%',c:'t-red',d:3100},
-  {t:'>>> PASSWORD HASH CAPTURED',c:'t-red',d:3600},
-  {t:'>>> MINECRAFT ACCOUNT STOLEN 😂',c:'t-red',d:4000},
-  {t:'KERNEL PANIC — not syncing: VFS unable to mount root fs',c:'t-red',d:4800},
-  {t:'CPU[0]: PRANK_OVERFLOW at 0xDEADBEEF',c:'t-red',d:5200},
+  {t:'[  OK  ] Started Network Manager.',c:'t-cyan',d:800},
+  {t:'Scanning system integrity...',c:'',d:1000},
+  {t:'>>> DETECTED: 1,337 CRITICAL THREATS',c:'t-red',d:1400},
+  {t:'>>> ROOTKIT FOUND IN SYSTEM32',c:'t-red',d:1700},
+  {t:'>>> ERROR: FIREWALL COMPLETELY DESTROYED',c:'t-red',d:2000},
+  {t:'>>> ANTIVIRUS.EXE HAS STOPPED WORKING',c:'t-red',d:2300},
+  {t:'Attempting emergency recovery...',c:'t-yellow',d:2600},
+  {t:'[FAIL] recovery.exe crashed (exit code 0xDEAD)',c:'t-red',d:3100},
+  {t:'[FAIL] backup_recovery.exe also crashed lol',c:'t-red',d:3400},
+  {t:'Uploading ALL your files to hacker server ☁️',c:'t-yellow',d:3700},
+  {t:'sending_nudes_folder.zip ████████░░ 80%',c:'t-red',d:4000},
+  {t:'>>> PASSWORDS.TXT CAPTURED (all 47 of them)',c:'t-red',d:4400},
+  {t:'>>> CREDIT CARD **** **** **** 1337 STOLEN',c:'t-red',d:4700},
+  {t:'>>> MINECRAFT ACCOUNT STOLEN 😂',c:'t-red',d:5000},
+  {t:'>>> ROBLOX ROBUX BALANCE: 0 (you\'re welcome)',c:'t-red',d:5300},
+  {t:'>>> DISCORD TOKEN LEAKED TO ENTIRE INTERNET',c:'t-red',d:5600},
+  {t:'Initiating self destruct sequence...',c:'t-yellow',d:6000},
+  {t:'3...',c:'t-red',d:6500},
+  {t:'2...',c:'t-red',d:7000},
+  {t:'1...',c:'t-red',d:7500},
+  {t:'KERNEL PANIC — not syncing: fatal exception in interrupt',c:'t-red',d:8000},
+  {t:'CPU[0]: PRANK_OVERFLOW at 0xDEADBEEF',c:'t-red',d:8300},
+  {t:'CPU[1]: also dead lmao',c:'t-red',d:8500},
+  {t:'%$#@!&*%$#@!... ░▒▓█▓▒░',c:'t-red',d:8700},
 ];
 
-function startPrank(){
+function startPrank() {
   initAudio();
-  document.getElementById('prankBtn').disabled=true;
-  document.getElementById('prankBtn').textContent='💀 TOO LATE...';
-  document.getElementById('os-overlay').style.display='flex';
+  checkPopupPermission();
+  document.getElementById('prankBtn').disabled = true;
+  document.getElementById('prankBtn').textContent = '💀 TOO LATE...';
+  document.getElementById('os-overlay').style.display = 'flex';
   document.getElementById('terminal').classList.add('active');
-  startGlitchAudio();
-  const out=document.getElementById('terminal-output');
-  lines.forEach(({t,c,d})=>{
-    setTimeout(()=>{
-      const l=document.createElement('div');
-      l.className='t-line '+c; l.textContent='> '+t;
-      out.appendChild(l); out.scrollTop=out.scrollHeight;
-    },d);
+  startChaoticAudio();
+
+  const out = document.getElementById('terminal-output');
+  lines.forEach(({t, c, d}) => {
+    setTimeout(() => {
+      const l = document.createElement('div');
+      l.className = 't-line ' + c;
+      l.textContent = '> ' + t;
+      out.appendChild(l);
+      out.scrollTop = out.scrollHeight;
+    }, d);
   });
-  setTimeout(()=>{
+
+  setTimeout(() => {
     document.getElementById('terminal').classList.remove('active');
     document.getElementById('bsod').classList.add('active');
-    let pct=0;
-    const bar=document.getElementById('bsod-bar'),pctEl=document.getElementById('bsod-pct');
-    const prog=setInterval(()=>{ pct+=Math.floor(Math.random()*7)+1; if(pct>=100){pct=100;clearInterval(prog);} bar.style.width=pct+'%'; pctEl.textContent=pct; },120);
-    setTimeout(()=>{ canvas.classList.add('active'); drawGlitch(); },500);
-    setTimeout(()=>{ for(let i=0;i<10;i++) setTimeout(()=>window.open('https://www.youtube.com/watch?v=SCaAetNzXIc','_blank'),i*300); },1500);
-    setTimeout(()=>window.open('https://www.youtube.com/watch?v=22z31vdqnWI','_blank'),5000);
-    setTimeout(()=>document.getElementById('close-btn').classList.add('visible'),6500);
-  },6500);
-}
 
-function closePrank(){
-  stopGlitchAudio();
-  if(animId){cancelAnimationFrame(animId);animId=null;}
-  canvas.classList.remove('active');
-  ctx2.clearRect(0,0,canvas.width,canvas.height);
-  const o=document.getElementById('os-overlay');
-  o.style.opacity='0'; o.style.transition='opacity .5s';
-  setTimeout(()=>{
-    o.style.display='none'; o.style.opacity=''; o.style.transition='';
-    document.getElementById('bsod').classList.remove('active');
-    document.getElementById('terminal').classList.remove('active');
-    document.getElementById('terminal-output').innerHTML='';
-    document.getElementById('bsod-bar').style.width='0%';
-    document.getElementById('bsod-pct').textContent='0';
-    document.getElementById('close-btn').classList.remove('visible');
-    document.getElementById('prankBtn').disabled=false;
-    document.getElementById('prankBtn').textContent='🔴 CLICK HERE FOR SECRET STUFF 🔴';
-  },500);
+    let pct = 0;
+    const bar = document.getElementById('bsod-bar');
+    const pctEl = document.getElementById('bsod-pct');
+    const prog = setInterval(() => {
+      pct += Math.floor(Math.random() * 7) + 1;
+      if (pct >= 100) { pct = 100; clearInterval(prog); }
+      bar.style.width = pct + '%';
+      pctEl.textContent = pct;
+    }, 120);
+
+    setTimeout(() => { canvas.classList.add('active'); drawGlitch(); }, 300);
+
+    // Open tabs OR autoclicker fallback — 600ms apart (2x slower)
+    if (canOpenTabs) {
+      for (let i = 0; i < 10; i++) {
+        setTimeout(() => window.open('https://www.youtube.com/watch?v=SCaAetNzXIc', '_blank'), 2000 + i * 600);
+      }
+      setTimeout(() => window.open('https://www.youtube.com/watch?v=22z31vdqnWI', '_blank'), 2000 + 10 * 600 + 1000);
+    } else {
+      // Can't open tabs — autoclicker on hidden links instead
+      setTimeout(() => startAutoClicker(), 2000);
+      // Stop after ~20 seconds
+      setTimeout(() => stopAutoClicker(), 22000);
+    }
+
+  }, 9500);
 }
 </script>
 </body>
