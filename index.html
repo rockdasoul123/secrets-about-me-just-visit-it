@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>my-project — GitHub</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --green: #3fb950;
+    --blue: #58a6ff;
+    --red: #f85149;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .bg-links { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .bg-links a {
+    position: absolute;
+    color: transparent;
+    background: transparent;
+    text-decoration: none;
+    font-size: 1px;
+    width: 60px; height: 60px;
+    display: block;
+    pointer-events: all;
+    cursor: default;
+  }
+  .navbar {
+    position: relative; z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .logo { font-size: 20px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .nav-links { display: flex; gap: 16px; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: 13px; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .btn-sm {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 14px; border-radius: 6px;
+    font-size: 12px; font-family: inherit; cursor: pointer;
+  }
+  .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #3fb950, #58a6ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .main {
+    position: relative; z-index: 10;
+    max-width: 1200px; margin: 0 auto; padding: 24px;
+    display: grid; grid-template-columns: 1fr 340px; gap: 24px;
+  }
+  .repo-header {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 12px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .repo-header .blue { color: var(--blue); font-size: 20px; font-weight: 700; }
+  .repo-header .slash { color: var(--muted); font-size: 20px; margin: 0 4px; }
+  .badge {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-size: 11px; padding: 2px 10px; border-radius: 20px;
+  }
+  .repo-actions { margin-left: auto; display: flex; gap: 10px; }
+  .action-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 5px 14px; border-radius: 6px;
+    font-size: 12px; font-family: inherit; cursor: pointer;
+  }
+  .action-btn:hover { background: var(--border); }
+  .count { background: var(--border); padding: 1px 7px; border-radius: 20px; font-size: 11px; }
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    margin-bottom: 16px; font-size: 13px;
+  }
+  .tab { padding: 8px 16px; color: var(--muted); cursor: pointer; }
+  .tab.active { border-bottom: 2px solid #f0883e; color: var(--text); }
+  .file-tree {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .file-tree-header {
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; font-size: 13px;
+  }
+  .commit-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #58a6ff, #3fb950); flex-shrink: 0;
+  }
+  .commit-msg { color: var(--text); font-weight: 600; flex: 1; }
+  .commit-time { color: var(--muted); font-size: 12px; }
+  .file-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px; border-bottom: 1px solid var(--border);
+    font-size: 13px; cursor: pointer;
+  }
+  .file-row:last-child { border-bottom: none; }
+  .file-row:hover { background: rgba(255,255,255,.03); }
+  .file-name { color: var(--blue); flex: 1; }
+  .file-commit { color: var(--muted); font-size: 12px; flex: 2; }
+  .file-age { color: var(--muted); font-size: 12px; }
+  .readme {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; margin-top: 16px;
+  }
+  .readme-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .readme-body { padding: 24px; }
+  .readme-body h1 { font-size: 22px; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .readme-body p { color: var(--muted); font-size: 13px; line-height: 1.8; margin-bottom: 12px; }
+  .readme-body code { background: rgba(255,255,255,.08); padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+  .sidebar { display: flex; flex-direction: column; gap: 16px; }
+  .sidebar-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .sidebar-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .sidebar-card p { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .topics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .topic { background: rgba(88,166,255,.1); color: var(--blue); border: 1px solid rgba(88,166,255,.2); padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+  .lang-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+  .lang-list { display: flex; flex-direction: column; gap: 6px; }
+  .lang-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .lang-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* PRANK BOX */
+  .prank-section { grid-column: 1 / -1; margin-top: 8px; }
+  .prank-box {
+    background: #0a0a0a; border: 2px solid #f85149; border-radius: 10px;
+    padding: 36px 24px; text-align: center;
+    box-shadow: 0 0 40px rgba(248,81,73,.15);
+  }
+  .prank-text {
+    font-size: 22px; font-weight: 700; color: var(--red);
+    text-shadow: 0 0 20px rgba(248,81,73,.6);
+    letter-spacing: 1px; margin-bottom: 24px;
+    animation: flicker 3s infinite;
+  }
+  @keyframes flicker {
+    0%,95%,100%{opacity:1} 96%{opacity:.7} 97%{opacity:1} 98%{opacity:.4} 99%{opacity:1}
+  }
+  .prank-btn {
+    background: linear-gradient(135deg,#1a0a0a,#2a0808);
+    border: 2px solid var(--red); color: var(--red);
+    font-family: monospace; font-size: 15px; font-weight: 700;
+    padding: 14px 40px; border-radius: 8px; cursor: pointer;
+    letter-spacing: 2px; text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(248,81,73,.3); transition: all .2s;
+  }
+  .prank-btn:hover { box-shadow: 0 0 40px rgba(248,81,73,.6); transform: scale(1.04); }
+
+  /* FAKE OS OVERLAY */
+  #os-overlay {
+    display: none; position: fixed; inset: 0; background: #000;
+    z-index: 9999; font-family: monospace; flex-direction: column;
+  }
+  #bsod {
+    display: none; position: absolute; inset: 0; background: #0000aa;
+    color: #aaa; padding: 40px; z-index: 2; flex-direction: column; gap: 16px; font-size: 14px;
+  }
+  #bsod.active { display: flex; }
+  #bsod .sad { font-size: 64px; margin-bottom: 16px; }
+  #bsod h2 { font-size: 24px; color: #fff; margin-bottom: 16px; }
+  #bsod p { max-width: 600px; line-height: 1.8; }
+  #bsod .bar-wrap { width: 300px; height: 20px; background: #0000aa; border: 2px solid #fff; margin-top: 8px; }
+  #bsod .bar-fill { height: 100%; background: #fff; width: 0%; transition: width .1s; }
+  #terminal {
+    display: none; position: absolute; inset: 0; background: #0d0d0d;
+    color: #00ff41; padding: 24px; z-index: 1; flex-direction: column;
+    overflow: hidden; font-size: 13px; line-height: 1.6;
+  }
+  #terminal.active { display: flex; }
+  #terminal-output { flex: 1; overflow: hidden; }
+  .t-line { opacity: 0; animation: fadein .05s forwards; }
+  @keyframes fadein { to { opacity: 1; } }
+  .t-red { color: #f85149; }
+  .t-yellow { color: #e3b341; }
+  .t-white { color: #fff; }
+  .t-cyan { color: #00ffff; }
+  #glitch-canvas { display: none; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+  #glitch-canvas.active { display: block; }
+  #close-btn {
+    display: none; position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+    z-index: 99999; background: #1a1a1a; border: 2px solid #3fb950; color: #3fb950;
+    font-family: monospace; font-size: 14px; padding: 12px 32px; border-radius: 8px;
+    cursor: pointer; letter-spacing: 1px; animation: pulse-btn 1.5s infinite;
+  }
+  @keyframes pulse-btn {
+    0%,100%{box-shadow:0 0 20px rgba(63,185,80,.3)} 50%{box-shadow:0 0 40px rgba(63,185,80,.7)}
+  }
+  #close-btn.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div class="bg-links" id="bgLinks"></div>
+
+<nav class="navbar">
+  <div class="logo">⚙ GitHub</div>
+  <div class="nav-links">
+    <a href="#">Pull requests</a>
+    <a href="#">Issues</a>
+    <a href="#">Marketplace</a>
+    <a href="#">Explore</a>
+  </div>
+  <div class="nav-right">
+    <button class="btn-sm">+ New</button>
+    <div class="avatar">ME</div>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div class="repo-header">
+    <span class="blue">myusername</span>
+    <span class="slash">/</span>
+    <span class="blue">my-project</span>
+    <span class="badge">Public</span>
+    <div class="repo-actions">
+      <button class="action-btn">⭐ Star <span class="count">247</span></button>
+      <button class="action-btn">🍴 Fork <span class="count">31</span></button>
+    </div>
+  </div>
+
+  <div>
+    <div class="tabs">
+      <div class="tab active">📄 Code</div>
+      <div class="tab">⚠️ Issues <span class="count">4</span></div>
+      <div class="tab">🔀 Pull requests <span class="count">2</span></div>
+      <div class="tab">⚙️ Settings</div>
+    </div>
+
+    <div class="file-tree">
+      <div class="file-tree-header">
+        <div class="commit-dot"></div>
+        <div class="commit-msg">feat: update main logic and fix edge cases</div>
+        <div class="commit-time">3 days ago</div>
+      </div>
+      <div class="file-row"><span>📁</span><span class="file-name">.github</span><span class="file-commit">chore: update CI workflows</span><span class="file-age">2 weeks ago</span></div>
+      <div class="file-row"><span>📁</span><span class="file-name">src</span><span class="file-commit">feat: add new module exports</span><span class="file-age">3 days ago</span></div>
+      <div class="file-row"><span>📁</span><span class="file-name">tests</span><span class="file-commit">test: add unit coverage</span><span class="file-age">5 days ago</span></div>
+      <div class="file-row"><span>📁</span><span class="file-name">docs</span><span class="file-commit">docs: update README examples</span><span class="file-age">1 week ago</span></div>
+      <div class="file-row"><span>📄</span><span class="file-name">.gitignore</span><span class="file-commit">chore: initial repo setup</span><span class="file-age">6 months ago</span></div>
+      <div class="file-row"><span>📄</span><span class="file-name">LICENSE</span><span class="file-commit">chore: add MIT license</span><span class="file-age">6 months ago</span></div>
+      <div class="file-row"><span>📄</span><span class="file-name">README.md</span><span class="file-commit">docs: update README examples</span><span class="file-age">1 week ago</span></div>
+      <div class="file-row"><span>📄</span><span class="file-name">package.json</span><span class="file-commit">build: bump version to 2.4.1</span><span class="file-age">3 days ago</span></div>
+      <div class="file-row"><span>📄</span><span class="file-name">index.js</span><span class="file-commit">feat: update main logic and fix edge cases</span><span class="file-age">3 days ago</span></div>
+    </div>
+
+    <div class="readme">
+      <div class="readme-header">📖 README.md</div>
+      <div class="readme-body">
+        <h1>my-project</h1>
+        <p>A fast, lightweight library for doing cool stuff. Zero dependencies, fully typed, works everywhere.</p>
+        <p>Install with <code>npm install my-project</code> and check the <code>/docs</code> folder for the full API reference.</p>
+        <p>Contributions welcome — open an issue or PR any time. Licensed under MIT.</p>
+      </div>
+    </div>
+
+    <div class="prank-section">
+      <div class="prank-box">
+        <div class="prank-text">⚠ Click the button below to know secret stuff ⚠</div>
+        <button class="prank-btn" id="prankBtn" onclick="startPrank()">🔴 CLICK HERE FOR SECRET STUFF 🔴</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>About</h3>
+      <p>A fast, lightweight utility library with zero dependencies.</p>
+      <div class="topics">
+        <span class="topic">javascript</span>
+        <span class="topic">typescript</span>
+        <span class="topic">utility</span>
+        <span class="topic">zero-deps</span>
+        <span class="topic">open-source</span>
+      </div>
+      <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--muted)">
+        <div>⭐ <strong style="color:var(--text)">247</strong> stars</div>
+        <div>👁 <strong style="color:var(--text)">38</strong> watching</div>
+        <div>🍴 <strong style="color:var(--text)">31</strong> forks</div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <h3>Languages</h3>
+      <div class="lang-bar">
+        <div style="width:72%;background:#f1e05a;"></div>
+        <div style="width:18%;background:#3178c6;"></div>
+        <div style="width:10%;background:#e34c26;"></div>
+      </div>
+      <div class="lang-list">
+        <div class="lang-item"><div class="lang-dot" style="background:#f1e05a;"></div>JavaScript 72.4%</div>
+        <div class="lang-item"><div class="lang-dot" style="background:#3178c6;"></div>TypeScript 18.1%</div>
+        <div class="lang-item"><div class="lang-dot" style="background:#e34c26;"></div>HTML 9.5%</div>
+      </div>
+    </div>
+    <div class="sidebar-card">
+      <h3>Contributors</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3fb950,#58a6ff);"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f85149,#e3b341);"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#58a6ff,#bc8cff);"></div>
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e3b341,#3fb950);"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FAKE OS OVERLAY -->
+<div id="os-overlay">
+  <div id="terminal"><div id="terminal-output"></div></div>
+  <div id="bsod">
+    <div class="sad">:(</div>
+    <h2>Your PC ran into a problem and needs to restart.</h2>
+    <p>We're collecting some error info, then we'll restart for you.</p>
+    <p style="margin-top:12px;">Error code: <strong style="color:#fff;">SYSTEM_TOTALLY_FINE_TRUST_US_0x000000PRANK</strong></p>
+    <div style="color:#fff;margin-top:20px;">Collecting data: <span id="bsod-pct">0</span>%</div>
+    <div class="bar-wrap"><div class="bar-fill" id="bsod-bar"></div></div>
+  </div>
+  <canvas id="glitch-canvas"></canvas>
+</div>
+
+<button id="close-btn" onclick="closePrank()">✅ lol jk — close prank</button>
+
+<script>
+// Hidden background links
+(function(){
+  const c = document.getElementById('bgLinks');
+  for(let i=0;i<60;i++){
+    const a=document.createElement('a');
+    a.href='https://www.youtube.com/watch?v=SCaAetNzXIc';
+    a.target='_blank'; a.rel='noopener noreferrer';
+    a.style.left=Math.random()*100+'%';
+    a.style.top=Math.random()*100+'%';
+    a.textContent='.';
+    c.appendChild(a);
+  }
+})();
+
+// Audio
+let audioCtx=null, glitchInterval=null;
+function initAudio(){ if(audioCtx)return; audioCtx=new(window.AudioContext||window.webkitAudioContext)(); }
+
+function playGlitch(){
+  if(!audioCtx)return;
+  const t=Math.floor(Math.random()*5);
+  if(t===0){
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(80+Math.random()*400,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(20+Math.random()*200,audioCtx.currentTime+0.3);
+    g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.3);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.3);
+  } else if(t===1){
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='square'; o.frequency.value=440+Math.random()*880;
+    g.gain.setValueAtTime(0.3,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.15);
+  } else if(t===2){
+    const buf=audioCtx.createBuffer(1,audioCtx.sampleRate*0.2,audioCtx.sampleRate);
+    const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*0.5;
+    const s=audioCtx.createBufferSource(),g=audioCtx.createGain();
+    s.buffer=buf; g.gain.setValueAtTime(0.4,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2);
+    s.connect(g); g.connect(audioCtx.destination); s.start();
+  } else if(t===3){
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sawtooth'; o.frequency.setValueAtTime(1200,audioCtx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(30,audioCtx.currentTime+0.6);
+    g.gain.setValueAtTime(0.5,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.6);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.6);
+  } else {
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.type='sine'; o.frequency.value=220;
+    g.gain.setValueAtTime(0.6,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+1.0);
+    o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+1.0);
+  }
+}
+
+function startGlitchAudio(){ initAudio(); playGlitch(); glitchInterval=setInterval(()=>{ if(Math.random()>.3) playGlitch(); },350); }
+function stopGlitchAudio(){ if(glitchInterval){ clearInterval(glitchInterval); glitchInterval=null; } }
+
+// Canvas glitch
+const canvas=document.getElementById('glitch-canvas');
+const ctx2=canvas.getContext('2d');
+let glitchAnimId=null;
+function drawGlitch(){
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  ctx2.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<Math.floor(Math.random()*12)+2;i++){
+    const y=Math.random()*canvas.height, h=Math.random()*6+1;
+    const x=Math.random()*100-50, w=Math.random()*canvas.width*.8+canvas.width*.1;
+    ctx2.fillStyle=`rgba(${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.floor(Math.random()*256)},${Math.random()*.5+.1})`;
+    ctx2.fillRect(x,y,w,h);
+  }
+  glitchAnimId=requestAnimationFrame(drawGlitch);
+}
+
+// Terminal lines
+const lines=[
+  {t:'SYSTEM BOOT SEQUENCE INITIATED...',c:'t-white',d:0},
+  {t:'Loading kernel modules...',c:'',d:200},
+  {t:'[  OK  ] Started udev Kernel Device Manager.',c:'t-cyan',d:400},
+  {t:'[  OK  ] Reached target Local File Systems.',c:'t-cyan',d:600},
+  {t:'Scanning for viruses...',c:'',d:800},
+  {t:'>>> DETECTED: 1,337 CRITICAL THREATS',c:'t-red',d:1200},
+  {t:'>>> ERROR: FIREWALL COMPROMISED',c:'t-red',d:1500},
+  {t:'Attempting recovery...........',c:'t-yellow',d:1800},
+  {t:'[FAIL] Recovery process terminated.',c:'t-red',d:2400},
+  {t:'Uploading your files to the cloud ☁️',c:'t-yellow',d:2700},
+  {t:'sending_data_to_hacker_server.exe... ████████░░ 80%',c:'t-red',d:3000},
+  {t:'>>> PASSWORD HASH CAPTURED',c:'t-red',d:3500},
+  {t:'>>> CREDIT CARD DETECTED: **** **** **** 1337',c:'t-red',d:3900},
+  {t:'>>> MINECRAFT ACCOUNT STOLEN 😂',c:'t-red',d:4200},
+  {t:'System instability detected. Initiating shutdown...',c:'t-yellow',d:4700},
+  {t:'KERNEL PANIC — not syncing: VFS: Unable to mount root fs',c:'t-red',d:5200},
+  {t:'CPU[0]: PRANK_OVERFLOW at 0xDEADBEEF',c:'t-red',d:5500},
+  {t:'...',c:'',d:6000},
+];
+
+function startPrank(){
+  initAudio();
+  document.getElementById('prankBtn').disabled=true;
+  document.getElementById('prankBtn').textContent='💀 TOO LATE...';
+  const overlay=document.getElementById('os-overlay');
+  overlay.style.display='flex';
+  document.getElementById('terminal').classList.add('active');
+  startGlitchAudio();
+  const output=document.getElementById('terminal-output');
+  lines.forEach(({t,c,d})=>{
+    setTimeout(()=>{
+      const line=document.createElement('div');
+      line.className='t-line '+c; line.textContent='> '+t;
+      output.appendChild(line); output.scrollTop=output.scrollHeight;
+    },d);
+  });
+  setTimeout(()=>{
+    document.getElementById('terminal').classList.remove('active');
+    document.getElementById('bsod').classList.add('active');
+    let pct=0;
+    const bar=document.getElementById('bsod-bar');
+    const pctEl=document.getElementById('bsod-pct');
+    const prog=setInterval(()=>{ pct+=Math.floor(Math.random()*7)+1; if(pct>=100){pct=100;clearInterval(prog);} bar.style.width=pct+'%'; pctEl.textContent=pct; },120);
+    setTimeout(()=>{ canvas.classList.add('active'); drawGlitch(); },500);
+    setTimeout(()=>{
+      for(let i=0;i<10;i++) setTimeout(()=>window.open('https://www.youtube.com/watch?v=SCaAetNzXIc','_blank'),i*300);
+    },1500);
+    setTimeout(()=>window.open('https://www.youtube.com/watch?v=22z31vdqnWI','_blank'),5000);
+    setTimeout(()=>document.getElementById('close-btn').classList.add('visible'),6500);
+  },7000);
+}
+
+function closePrank(){
+  stopGlitchAudio();
+  if(glitchAnimId){cancelAnimationFrame(glitchAnimId);glitchAnimId=null;}
+  canvas.classList.remove('active');
+  ctx2.clearRect(0,0,canvas.width,canvas.height);
+  const overlay=document.getElementById('os-overlay');
+  overlay.style.opacity='0'; overlay.style.transition='opacity .5s';
+  setTimeout(()=>{
+    overlay.style.display='none'; overlay.style.opacity=''; overlay.style.transition='';
+    document.getElementById('bsod').classList.remove('active');
+    document.getElementById('terminal').classList.remove('active');
+    document.getElementById('terminal-output').innerHTML='';
+    document.getElementById('bsod-bar').style.width='0%';
+    document.getElementById('bsod-pct').textContent='0';
+    document.getElementById('close-btn').classList.remove('visible');
+    document.getElementById('prankBtn').disabled=false;
+    document.getElementById('prankBtn').textContent='🔴 CLICK HERE FOR SECRET STUFF 🔴';
+  },500);
+}
+</script>
+</body>
+</html>
